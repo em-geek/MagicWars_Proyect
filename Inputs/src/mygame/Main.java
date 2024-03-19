@@ -46,25 +46,30 @@ public class Main extends SimpleApplication {
         inputManager.addListener(actionListener, new String[]{MAPPING_COLOR});
         inputManager.addListener(analogListener, new String[]{MAPPING_ROTATE});
         
-        Box b = new Box(1, 1, 1);
-        Geometry geom = new Geometry("Box", b);
+        Box blue01 = new Box(1, 1, 1);
+        box01_geom = new Geometry("box blue", blue01);
+        Material box01_mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        box01_mat.setColor("Color", ColorRGBA.Blue);
+        box01_geom.setMaterial(box01_mat);
 
-        Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-        mat.setColor("Color", ColorRGBA.Blue);
-        geom.setMaterial(mat);
-
-        rootNode.attachChild(geom);
+        rootNode.attachChild(box01_geom);
     }
     
     private ActionListener actionListener = new ActionListener(){
         public void onAction(String name, boolean isPressed, float tpf){
             System.out.println("You triggered: "+name);
+            if (name.equals(MAPPING_COLOR) && !isPressed){
+                box01_geom.getMaterial().setColor("Color", ColorRGBA.randomColor());
+            }
         }
     };
 
     private AnalogListener analogListener = new AnalogListener(){
         public void onAnalog(String name, float intensity, float tpf){
-            System.out.println("You triggered: "+name);
+            if(name.equals(MAPPING_ROTATE)){
+                box01_geom.rotate(0, intensity, 0);
+                System.out.println("You triggered: "+name+" , intensidad: " + intensity);
+            }
         }
     };
 
