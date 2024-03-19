@@ -21,7 +21,7 @@ import com.jme3.texture.Texture;
  * Move your Logic into AppStates or Controls
  * @author normenhansen
  */
-public class Main extends SimpleApplication {
+public class UserInput extends SimpleApplication {
     //Rotaciones al sol
     public Spatial solS = null;
     public Spatial mercurioS = null;
@@ -57,7 +57,7 @@ public class Main extends SimpleApplication {
     public Spatial encetado = null;
 
     public static void main(String[] args) {
-        Main app = new Main();
+        UserInput app = new UserInput();
         app.start();
     }
 
