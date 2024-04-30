@@ -30,8 +30,10 @@ public class Main extends SimpleApplication {
     public void simpleInitApp() {
         // Load the castle model
         assetManager.registerLocator("assets/Models/castillo/", FileLocator.class);
-        castle = assetManager.loadModel("castillo.j3o");
+        castle = assetManager.loadModel("Castle.j3o");
         rootNode.attachChild(castle);
+        // Cambia el color de fondo del ViewPort a blanco
+        viewPort.setBackgroundColor(com.jme3.math.ColorRGBA.White);
 
         // Initialize the player
         initPlayer();
