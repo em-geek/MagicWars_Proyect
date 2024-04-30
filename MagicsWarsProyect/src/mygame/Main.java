@@ -5,6 +5,8 @@ import com.jme3.asset.plugins.FileLocator;
 import com.jme3.input.KeyInput;
 import com.jme3.input.controls.ActionListener;
 import com.jme3.input.controls.KeyTrigger;
+import com.jme3.light.DirectionalLight;
+import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.RenderManager;
 import com.jme3.scene.Node;
@@ -30,10 +32,17 @@ public class Main extends SimpleApplication {
     public void simpleInitApp() {
         // Load the castle model
         assetManager.registerLocator("assets/Models/castillo/", FileLocator.class);
-        castle = assetManager.loadModel("Castle.j3o");
+        castle = assetManager.loadModel("castillo.j3o");
         rootNode.attachChild(castle);
+        
+        // Agregar iluminación
+        DirectionalLight sun = new DirectionalLight();
+        sun.setDirection(new Vector3f(-0.1f, -0.7f, -1.0f)); // Dirección de la luz (puede ajustarse)
+        sun.setColor(ColorRGBA.White); // Color de la luz
+        rootNode.addLight(sun);
+
         // Cambia el color de fondo del ViewPort a blanco
-        viewPort.setBackgroundColor(com.jme3.math.ColorRGBA.White);
+        viewPort.setBackgroundColor(com.jme3.math.ColorRGBA.Gray);
 
         // Initialize the player
         initPlayer();
@@ -49,10 +58,10 @@ public class Main extends SimpleApplication {
     }
     
     private void initPlayer() {
-    player = new Player();
-    rootNode.attachChild(player.getNode());
-    player.getNode().setLocalTranslation(0, 10, 0); // Posición inicial del jugador
-}
+        player = new Player();
+        rootNode.attachChild(player.getNode());
+        player.getNode().setLocalTranslation(0, 10, 0); // Posición inicial del jugador
+    }
 
     // Updates the player
     @Override
