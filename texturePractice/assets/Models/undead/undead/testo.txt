@@ -1,0 +1,75 @@
+Modelled in Blender, textured in Gimp.
+
+
+
+Questo modello e' rilasciato sotto Creative Commons Licence, Attribution 2.0
+per maggiori informazioni su questa licenza:
+http://creativecommons.org
+http://creativecommons.org/licenses/by/2.0/it/
+Puoi utilizzarlo liberamente, modificarlo e migliorarlo.
+
+###################### 
+
+This model is released under Creative Commons Licence, Attribution 2.0
+for informations see:
+http://creativecommons.org
+http://creativecommons.org/licenses/by/2.0/
+feel free to use and improve it.
+
+
+By Tiziana aka TiZeta.
+http://www.unbruco.it/offcircle/index.html
+unbrucom1@unbruco.it
+tialo@tiscali.it
+
+##################
+
+
+Note
+
+Questo e' stato il mio primo modello completo.
+Per questo motivo contiene errori e imprecisioni.
+In particolare:
+	
+	- Non si trova all'origine degli assi. 
+	Questo puo' creare problemi in fase di 
+	esportazione per un game engine.
+	
+	- Contiene "buchi" nella mesh. 
+	Anche questo in fase di esportazione puo' 
+	creare problemi, alcuni game engine non lo
+	accettano.
+	
+	- Nel texture sheet c'e un bel po' di spazio
+	sprecato.
+	
+	- Ci sono alcuni "seams" nelle texture (ad 
+	esempio nelle gambe).
+	
+	- Per il rigging, potrebbe avere piu' poligoni 
+	nelle giunture: spalle, gambe, gomiti ecc.
+	
+	
+###################
+
+Notes
+
+This was my first complete model, so it contains
+some errors.
+
+	- It is not at the origin of axis. This could 
+	be a problem if you want to export it for a 
+	game engine.
+	
+	- It has "holes" in geometry. Some game engine
+	don't accept it.
+	
+	- There's a lot of wasted space in the texture 
+	sheet.
+	
+	- There are seams in textures, for example in 
+	his legs.
+	
+	- Having more geometry in sholders, arms and 
+	others joints is better for rigging.	
+	

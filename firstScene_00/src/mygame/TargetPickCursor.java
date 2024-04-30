@@ -20,20 +20,16 @@ import com.jme3.math.Ray;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Geometry;
+import com.jme3.scene.Node;
 import com.jme3.scene.shape.Box;
 
 /**
- * TargetPickCursor - Es la evolucion del programa TargetPickCenter
+ * A partir del codigo para manejar entradas se desarrolla el siguiente codigo que mostrara la 
+ * forma en la cual establecer el codigo para producir objetos en masa. Tambien se utilizar para 
+ * proporsionar una mira de forma que sepamos a donde apuntar.
  * 
  * Se complementara la practica con "pick a brick"
  * - Definiendo una mira y detectando coliciones, se identificara los objetos seleccionados
- * 
- * Se hace un segndo complemento con "pick a brick" (usando el mouse)
- * - En lugar de hacer una mira para identificar los objetos sobre los cuales se hace click, se 
- * hara visible el mouse en la escena para dar cuenta donde podriamos hacer click.
- * - Se removera la mira.
- * - Aplicar ray casting con el cursor del mouse
- * 
  * @author boyolu
  */
 public class TargetPickCursor extends SimpleApplication {
@@ -78,7 +74,6 @@ public class TargetPickCursor extends SimpleApplication {
         return geom;
     }
     
-    
     @Override
     public void simpleInitApp(){
         //para hacer uso de los triggers y mapping se deben registrar en el inputManager
@@ -92,10 +87,9 @@ public class TargetPickCursor extends SimpleApplication {
         inputManager.addListener(actionListener, new String[]{MAPPING_COLOR});
         inputManager.addListener(analogListener, new String[]{MAPPING_ROTATE});
         
-        // El cursor del mouse esta escondido por defecto, por lo cual para hacerlo aparecer
-        // se requiere la siguientes lineas
         flyCam.setDragToRotate(true);
-        inputManager.setCursorVisible(true);
+        inputManager.setCursorVisible(true);    
+        
         
         Box blue01 = new Box(1,1,1);
         //Se modifico la posicion en donde se definicion del objeto box01_geom
@@ -106,13 +100,16 @@ public class TargetPickCursor extends SimpleApplication {
         
         //rootNode.attachChild(box01_geom);
         
-                
+       
+        
         // Utilizando el metodo y la malla definida de forma estatica, se hacen y adjuntan 
         // varias cajas a la escena
         rootNode.attachChild(this.myBox("Red Cube", new Vector3f(0, 1.5f, 0), ColorRGBA.Red));
         rootNode.attachChild(this.myBox("Blue Cube", new Vector3f(0, -1.5f, 0), ColorRGBA.Blue));
-        rootNode.attachChild(this.myBox("Yellow Cube", new Vector3f(2.5f, 1.5f, 0), ColorRGBA.Yellow));
-        rootNode.attachChild(this.myBox("Green Cube", new Vector3f(-2.5f, -1.5f, 0), ColorRGBA.Green));
+        Node enemigos = new Node("enemigos");
+        enemigos.attachChild(this.myBox("Yellow Cube", new Vector3f(2.5f, 1.5f, 0), ColorRGBA.Yellow));
+        enemigos.attachChild(this.myBox("Green Cube", new Vector3f(-2.5f, -1.5f, 0), ColorRGBA.Green));
+        rootNode.attachChild(enemigos);
     }    
     
     
@@ -127,23 +124,77 @@ public class TargetPickCursor extends SimpleApplication {
                 // !isPressed evalua el input para activar cuando se libere el trigger, es 
                 // decir, cuando se suelta el boton del mouse
                 if (name.equals(MAPPING_COLOR)&& !isPressed){
-                    box01_geom.getMaterial().setColor("Color", ColorRGBA.randomColor());
+                    // En esta seccio determinamos la accion de rotar la caja que este apuntando 
+                        // La mira del mouse.
+                        //colision identificara el objeto al cual se le hace click
+                        CollisionResults results = new CollisionResults();
+                        // Se proyecta una linea de acuerdo a la posicion de la camara, en la 
+                        //direccion donde la camara esta apuntando
+                        Ray ray = new Ray(cam.getLocation(), cam.getDirection());
+                        //calculamos si esta rayo proyectado hace colision con el objeto
+                        rootNode.collideWith(ray, results);
+                        
+                        //Si el usuario ha hecho click en algo, identificaremos la geometria seleccionada
+                        if (results.size()>0){
+                            Geometry target = results.getClosestCollision().getGeometry();
+                            //se implementara la accion identificada
+                            if (target.getName().equals("Red Cube") || target.getName().equals("Yellow Cube") || target.getName().equals("Blue Cube") || target.getName().equals("Green Cube")){
+                                box01_geom = (Geometry) rootNode.getChild(target.getName());
+                                box01_geom.getMaterial().setColor("Color", ColorRGBA.randomColor());
+                            
+                            } else{
+                             System.out.println("Selection: Nothing");
+                        }
+                    }
                 }
             }
     };
     //Utilizamos el listener analogico ya que la accion de rotacion sera una accion continua.
     private final AnalogListener analogListener = new AnalogListener(){
-        @Override
-        public void onAnalog(String name, float intensity, float tpf){
-            // creamos una lista vacia de resultado para las colisiones
-            CollisionResults results = new CollisionResults();
-            // Al hacer uso del mouse, se requiere de la posicion 2D de éste
-            Vector2f click2d = inputManager.getCursorPosition();
-            // Convertimos el vector2D en uno 3D para definir el origen del ray, ya que 
-            // un ray requiere vector 3D
-            Vector3f click3d = cam.getWorldCoordinates(click2d, 0f);
-        }
-    };
+            @Override
+            public void onAnalog(String name, float intensity, float tpf){
+                    // se comprueba que el trigger indentificado corresponda a la acción deseada
+                    if(name.equals(MAPPING_ROTATE)){
+                        // En esta seccio determinamos la accion de rotar la caja que este apuntando 
+                        // La mira del mouse.
+                        //colision identificara el objeto al cual se le hace click
+                        CollisionResults results = new CollisionResults();
+                        
+                        Vector2f click2d = inputManager.getCursorPosition();
+                        
+                        Vector3f click3d = cam.getWorldCoordinates(
+                                new Vector2f(click2d.getX(), click2d.getY()), 0f);
+                        
+                        Vector3f dir = cam.getWorldCoordinates(
+                                new Vector2f(click2d.getX(), click2d.getY()), 1f).subtractLocal(click3d);
+                        // Se proyecta una linea de acuerdo a la posicion de la camara, en la 
+                        //direccion donde la camara esta apuntando
+                        Ray ray = new Ray(click3d, dir);
+                        //calculamos si esta rayo proyectado hace colision con el objeto
+                        rootNode.collideWith(ray, results);
+                        
+                        //Si el usuario ha hecho click en algo, identificaremos la geometria seleccionada
+                        if (results.size()>0){
+                            Geometry target = results.getClosestCollision().getGeometry();
+                            //se implementara la accion identificada
+                            System.out.println(target.getParent() + "");
+                            if (target.getParent().equals("enemigos")){
+                                target.rotate(0,-intensity,0);//rotar a la izquierda
+                            }
+                            
+                            //imprimir los resultdos intermedios de la evaluacion de coliciones 
+                            for (int i=0; i < results.size(); i++){
+                                float dist = results.getCollision(i).getDistance();
+                                Vector3f pt = results.getCollision(i).getContactPoint();
+                                String target_name = results.getCollision(i).getGeometry().getName();
+                                System.out.println("Selection: #"+ i + ": "+ target_name + " at "+ pt + ", " + dist + " WU away.");
+                            }
+                        } else{
+                            System.out.println("Selection: Nothing");
+                        }
+                    }
+                }
+            };
     
     @Override
     public void simpleUpdate(float tpf){

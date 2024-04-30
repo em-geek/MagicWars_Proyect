@@ -47,7 +47,6 @@ public class Main extends SimpleApplication {
         //Integramos una imagen personal a la pantalla de inicio
         settings.setSettingsDialogImage("Interface/towerSplash.png");
         //modificar la resolucion 
-        settings.setResolution(1280, 960);
         //useInput establece si deseamos reaccionar a las entradas del mouse o teclado
         //settings.useInput(false);
         Main app = new Main();
