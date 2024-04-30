@@ -2,15 +2,21 @@ package mygame;
 
 import com.jme3.app.SimpleApplication;
 import com.jme3.asset.plugins.FileLocator;
+import com.jme3.bullet.collision.shapes.CapsuleCollisionShape;
+import com.jme3.bullet.control.CharacterControl;
 import com.jme3.input.KeyInput;
 import com.jme3.input.controls.ActionListener;
 import com.jme3.input.controls.KeyTrigger;
 import com.jme3.light.DirectionalLight;
+import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.RenderManager;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
+import com.jme3.terrain.geomipmap.TerrainLodControl;
+import com.jme3.terrain.geomipmap.TerrainQuad;
+import com.jme3.texture.Texture;
 
 /**
  * This is the Main Class of your Game. You should only do initialization here.
@@ -21,6 +27,7 @@ public class Main extends SimpleApplication {
 
     Player player;
     Spatial castle;
+    private static final float GRAVITY = 30f;
 
     public static void main(String[] args) {
         Main app = new Main();
@@ -47,6 +54,32 @@ public class Main extends SimpleApplication {
         // Initialize the player
         initPlayer();
         setUpKeys();
+        
+        // Configura la cámara para que siga al jugador
+        cam.setFrustumPerspective(45f, (float) cam.getWidth() / cam.getHeight(), 0.01f, 1000f);
+        cam.lookAtDirection(new Vector3f(0, 0, -1), Vector3f.UNIT_Y); // Orienta la cámara hacia adelante
+        
+        // Crear un terreno procedimental
+    TerrainQuad terrain = new TerrainQuad("myTerrain", 65, 257, null);
+    TerrainLodControl lodControl = new TerrainLodControl(terrain, cam);
+    terrain.addControl(lodControl);
+    terrain.setLocalTranslation(0, -100, 0); // Ajusta la posición del terreno
+
+    // Configurar el material del terreno
+    Material matTerrain = new Material(assetManager, "Common/MatDefs/Terrain/TerrainLighting.j3md");
+    matTerrain.setBoolean("useTriPlanarMapping", false);
+    matTerrain.setFloat("Shininess", 0.0f);
+
+
+    // Asignar el material al terreno
+    terrain.setMaterial(matTerrain);
+
+    // Agregar el terreno a la escena
+    rootNode.attachChild(terrain);
+
+    // Inicializar el jugador y configurar las teclas
+    initPlayer();
+    setUpKeys();
     }
 
     // Sets up the keys for player movement
@@ -61,13 +94,23 @@ public class Main extends SimpleApplication {
         player = new Player();
         rootNode.attachChild(player.getNode());
         player.getNode().setLocalTranslation(0, 10, 0); // Posición inicial del jugador
+        
+        
     }
 
     // Updates the player
     @Override
     public void simpleUpdate(float tpf) {
-        player.update(tpf);
         checkCollisionWithCastle();
+        
+        player.update(tpf);
+
+    // Actualiza la posición y orientación de la cámara para seguir al jugador
+    Vector3f playerPos = player.getNode().getWorldTranslation();
+    Vector3f camOffset = new Vector3f(0, 2, 5); // Offset de la cámara detrás y encima del jugador
+    cam.setLocation(playerPos.add(camOffset)); // Establece la posición de la cámara
+
+    
     }
 
     // Check collision with the castle
@@ -109,14 +152,14 @@ public class Main extends SimpleApplication {
 
         // Method to update the player's position based on input and gravity
         public void update(float tpf) {
-            previousPosition.set(playerNode.getLocalTranslation()); // Update previous position
+            previousPosition.set(playerNode.getLocalTranslation()); // Actualiza la posición anterior
 
-            // Apply gravity
+            // Aplica la gravedad si el jugador no está en el suelo
             if (!onGround) {
-                walkDirection.y -= 30 * tpf;
+                walkDirection.y -= GRAVITY * tpf; // Ajusta la velocidad en y según la gravedad
             }
 
-            // Update player's position
+            // Actualiza la posición del jugador
             playerNode.move(walkDirection.mult(tpf));
         }
 
