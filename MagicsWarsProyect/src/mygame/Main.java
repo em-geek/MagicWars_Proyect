@@ -7,13 +7,14 @@ import com.jme3.input.controls.KeyTrigger;
 import com.jme3.light.DirectionalLight;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
+import com.jme3.math.FastMath;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.RenderManager;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.shape.Box;
-import com.jme3.system.AppSettings;
+import com.jme3.scene.shape.Quad;
 import com.jme3.texture.Texture;
 import com.jme3.util.SkyFactory;
 import java.util.Random;
@@ -63,6 +64,25 @@ public class Main extends SimpleApplication {
 
             rootNode.attachChild(geom);
         }
+        
+         // Crear el material para el suelo
+        Material groundMat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        Texture groundTexture = assetManager.loadTexture("Textures/brick.png"); // Ajusta la textura según lo que necesites
+        groundMat.setTexture("ColorMap", groundTexture);
+
+        // Crear el suelo como un Quad grande
+        Quad groundMesh = new Quad(200, 200); // Tamaño del suelo (ajústalo según tu necesidad)
+        Geometry groundGeom = new Geometry("Ground", groundMesh);
+        groundGeom.setMaterial(groundMat);
+        groundGeom.rotate(-FastMath.HALF_PI, 0, 0); // Rotar para que sea horizontal
+
+        // Posicionar el suelo debajo de la cámara
+        groundGeom.setLocalTranslation(-60, 0, 60);
+        float groundSize = 300; // Tamaño del suelo
+
+        // Adjuntar el suelo al rootNode
+        rootNode.attachChild(groundGeom);
+        
         // Inicializar al jugador
         initPlayer();
         setUpKeys();
