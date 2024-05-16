@@ -18,10 +18,15 @@ import com.jme3.scene.shape.Quad;
 import com.jme3.texture.Texture;
 import com.jme3.util.SkyFactory;
 import java.util.Random;
+import com.jme3.bullet.BulletAppState;
+import com.jme3.bullet.collision.shapes.CollisionShape;
+import com.jme3.bullet.control.RigidBodyControl;
+import com.jme3.bullet.util.CollisionShapeFactory;
 
 public class Main extends SimpleApplication {
 
         Player player;
+        BulletAppState fisica;
     
     public static void main(String[] args) {
         
@@ -49,11 +54,15 @@ public class Main extends SimpleApplication {
         Texture brickTexture = assetManager.loadTexture("Textures/brick.png");
         mat.setTexture("ColorMap", brickTexture);
 
+        // Crear un nodo para contener las cajas
+        Node cajasNode = new Node("CajasNode");
+        rootNode.attachChild(cajasNode);
+        
         // Genera y posiciona los cubos
         Random rand = new Random();
         for (int i = 0; i < 50; i++) {
             Box b = new Box(1, 1, 1);  // Crea un cubo de tamaño 1x1x1
-            Geometry geom = new Geometry("Box", b);
+            Geometry geom = new Geometry("Box" + i, b); // Cambia el nombre de la geometrí
             geom.setMaterial(mat);
 
             // Posiciona el cubo en una posición aleatoria
@@ -62,7 +71,7 @@ public class Main extends SimpleApplication {
             float z = rand.nextFloat() * 50 - 25;
             geom.setLocalTranslation(new Vector3f(x, y, z));
 
-            rootNode.attachChild(geom);
+            cajasNode.attachChild(geom);
         }
         
          // Crear el material para el suelo
@@ -90,6 +99,36 @@ public class Main extends SimpleApplication {
         // Configurar la cámara para seguir al jugador
         cam.setFrustumPerspective(45f, (float) cam.getWidth() / cam.getHeight(), 0.01f, 1000f);
         cam.lookAtDirection(new Vector3f(0, 0, -1), Vector3f.UNIT_Y); // Orientar la cámara hacia adelante
+        
+        //Agregacion de fisica
+        fisica = new BulletAppState();
+        stateManager.attach(fisica);
+        fisica.setDebugEnabled(true);
+        
+        
+        ////COLISIONES CAJAS
+        //Colisiones
+        Spatial cajas = cajasNode;
+        CollisionShape colisionCajas = CollisionShapeFactory.createBoxShape(cajas);
+        
+        //Cuerpo Rigido
+        RigidBodyControl cuerpoRigidoCaja = new RigidBodyControl(colisionCajas, 0.0f);
+        cajas.addControl(cuerpoRigidoCaja);
+        fisica.getPhysicsSpace().add(cuerpoRigidoCaja);
+        
+        
+        ////COLISIONES SUELO
+        //Colisiones
+        Spatial suelo = groundGeom;
+        CollisionShape colisionSuelo = CollisionShapeFactory.createBoxShape(suelo);
+        
+        //Cuerpo Rigido
+        RigidBodyControl cuerpoRigidoSuelo = new RigidBodyControl(colisionSuelo, 0.0f);
+        suelo.addControl(cuerpoRigidoSuelo);
+        fisica.getPhysicsSpace().add(cuerpoRigidoSuelo);
+        
+        
+        
     }
     
         // Configurar las teclas para el movimiento del jugador
