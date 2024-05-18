@@ -39,6 +39,11 @@ public class Main extends SimpleApplication {
     public void simpleInitApp(){
         rootNode.attachChild(SkyFactory.createSky(getAssetManager(), "Textures/sky2.png", SkyFactory.EnvMapType.EquirectMap));
             
+        //Agregacion de fisica
+        fisica = new BulletAppState();
+        stateManager.attach(fisica);
+        fisica.setDebugEnabled(true);
+        
         // Configurar la cámara
         cam.setLocation(new Vector3f(0, 10, 30));
         cam.lookAt(new Vector3f(0, 0, 0), Vector3f.UNIT_Y);
@@ -64,7 +69,10 @@ public class Main extends SimpleApplication {
             Box b = new Box(1, 1, 1);  // Crea un cubo de tamaño 1x1x1
             Geometry geom = new Geometry("Box" + i, b); // Cambia el nombre de la geometrí
             geom.setMaterial(mat);
-
+                CollisionShape colisionCaja = CollisionShapeFactory.createBoxShape(geom);
+                RigidBodyControl cuerpoRigidoCaja = new RigidBodyControl(colisionCaja, 1.0f);
+                geom.addControl(cuerpoRigidoCaja);  // Attach control to each box geometry
+                fisica.getPhysicsSpace().add(cuerpoRigidoCaja);
             // Posiciona el cubo en una posición aleatoria
             float x = rand.nextFloat() * 50 - 25;
             float y = rand.nextFloat() * 10;
@@ -80,42 +88,35 @@ public class Main extends SimpleApplication {
         groundMat.setTexture("ColorMap", groundTexture);
 
         // Crear el suelo como un Quad grande
-        Quad groundMesh = new Quad(200, 200); // Tamaño del suelo (ajústalo según tu necesidad)
+        Box groundMesh = new Box(200,0.5f, 200); // Tamaño del suelo (ajústalo según tu necesidad)
         Geometry groundGeom = new Geometry("Ground", groundMesh);
         groundGeom.setMaterial(groundMat);
-        groundGeom.rotate(-FastMath.HALF_PI, 0, 0); // Rotar para que sea horizontal
+        
 
         // Posicionar el suelo debajo de la cámara
-        groundGeom.setLocalTranslation(-60, 0, 60);
-        float groundSize = 300; // Tamaño del suelo
+        groundGeom.setLocalTranslation(-60, -100, 60);
 
         // Adjuntar el suelo al rootNode
         rootNode.attachChild(groundGeom);
         
-        // Inicializar al jugador
-        initPlayer();
-        setUpKeys();
         
         // Configurar la cámara para seguir al jugador
         cam.setFrustumPerspective(45f, (float) cam.getWidth() / cam.getHeight(), 0.01f, 1000f);
         cam.lookAtDirection(new Vector3f(0, 0, -1), Vector3f.UNIT_Y); // Orientar la cámara hacia adelante
         
-        //Agregacion de fisica
-        fisica = new BulletAppState();
-        stateManager.attach(fisica);
-        fisica.setDebugEnabled(true);
+
         
         
         ////COLISIONES CAJAS
         //Colisiones
-        Spatial cajas = cajasNode;
+        /*Spatial cajas = cajasNode;
         CollisionShape colisionCajas = CollisionShapeFactory.createBoxShape(cajas);
         
         //Cuerpo Rigido
-        RigidBodyControl cuerpoRigidoCaja = new RigidBodyControl(colisionCajas, 0.0f);
+        RigidBodyControl cuerpoRigidoCaja = new RigidBodyControl(colisionCajas, 1.0f);
         cajas.addControl(cuerpoRigidoCaja);
         fisica.getPhysicsSpace().add(cuerpoRigidoCaja);
-        
+        */
         
         ////COLISIONES SUELO
         //Colisiones
@@ -127,6 +128,9 @@ public class Main extends SimpleApplication {
         suelo.addControl(cuerpoRigidoSuelo);
         fisica.getPhysicsSpace().add(cuerpoRigidoSuelo);
         
+        // Inicializar al jugador
+        initPlayer(fisica);
+        setUpKeys();
         
         
     }
@@ -141,9 +145,21 @@ public class Main extends SimpleApplication {
         inputManager.addListener(player, "Left", "Right", "Forward", "Backward", "Jump");
     }
     
-    private void initPlayer() {
+    private void initPlayer(BulletAppState fisica) {
         player = new Player();
         rootNode.attachChild(player.getNode());
+        
+        ////COLISIONES SUELO
+        //Colisiones
+        Spatial personaje = player.getNode();
+        CollisionShape colisionPersonaje = CollisionShapeFactory.createBoxShape(personaje);
+        
+        //Cuerpo Rigido
+        RigidBodyControl cuerpoRigidoPersonaje = new RigidBodyControl(colisionPersonaje, 1.0f);
+        cuerpoRigidoPersonaje.setGravity(new Vector3f(0, -9.81f, 0)); // Sets gravity to -9.81 on the Y-axis
+        personaje.addControl(cuerpoRigidoPersonaje);
+        fisica.getPhysicsSpace().add(cuerpoRigidoPersonaje);
+        
         
     }
     
