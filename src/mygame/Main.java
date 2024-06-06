@@ -40,10 +40,6 @@ public class Main extends SimpleApplication {
     BulletAppState fisica;
     ArrayList<Enemy> enemies;
     int maxEnemies = 5; // Máximo número de enemigos en el juego
-
-    
-    Player player;
-    BulletAppState fisica;
     boolean isGameOver = false;
     private Timer gameOverTimer;
     
@@ -194,41 +190,21 @@ public class Main extends SimpleApplication {
         enemies.add(e);
         rootNode.attachChild(e);
     }
-
+    
     @Override
     public void simpleUpdate(float tpf) {
         player.update(tpf);
         updateEnemies(tpf);
-
-        // Actualizar la posición de la cámara para seguir al jugador
-        cam.setLocation(player.getNode().getWorldTranslation().add(0, 1.8f, 0)); // Altura de los ojos del jugador
-    }
-
-        
-        ////COLISIONES SUELO
-        //Colisiones
-        Spatial personaje = player.getNode();
-        CollisionShape colisionPersonaje = CollisionShapeFactory.createBoxShape(personaje);
-        
-        //Cuerpo Rigido
-        RigidBodyControl cuerpoRigidoPersonaje = new RigidBodyControl(colisionPersonaje, 1.0f);
-        cuerpoRigidoPersonaje.setGravity(new Vector3f(0, -9.81f, 0)); // Sets gravity to -9.81 on the Y-axis
-        personaje.addControl(cuerpoRigidoPersonaje);
-        fisica.getPhysicsSpace().add(cuerpoRigidoPersonaje);
-    }
-    
-    @Override
-    public void simpleUpdate(float tpf) {
         if (!isGameOver) {
             player.update(tpf);
             // Actualizar la posición de la cámara para seguir al jugador
             Vector3f playerPos = player.getNode().getWorldTranslation();
             Vector3f camOffset = new Vector3f(0, 2, 5); // Offset de la cámara detrás y encima del jugador
-            cam.setLocation(playerPos.add(camOffset)); // Establecer la posición de la cámara
+            cam.setLocation(player.getNode().getWorldTranslation().add(0, 1.8f, 0)); // Altura de los ojos del jugador
         } else {
             // Incrementa el temporizador cuando se muestra la pantalla de Game Over
             gameOverTimer.update();
-            if (gameOverTimer.getTimeInSeconds() >= 20.0f) {
+            if (gameOverTimer.getTimeInSeconds() >= 30.0f) {
                 // Cierra la aplicación después de 3 segundos
                 stop();
             }
@@ -261,13 +237,6 @@ public class Main extends SimpleApplication {
             }
         }
     };
-    
-    // Clase del jugador
-    class Player implements ActionListener {
-        Node playerNode;
-        Spatial playerModel;
-        Vector3f walkDirection = new Vector3f();
-        boolean left, right, forward, backward, jump;
 
     private void updateEnemies(float tpf) {
         Vector3f playerLocation = player.getNode().getLocalTranslation();
