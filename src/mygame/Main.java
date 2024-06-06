@@ -23,21 +23,22 @@ import com.jme3.bullet.collision.shapes.CollisionShape;
 import com.jme3.bullet.control.RigidBodyControl;
 import com.jme3.bullet.util.CollisionShapeFactory;
 import com.jme3.font.BitmapText;
+import com.jme3.system.Timer;
 
 public class Main extends SimpleApplication {
-    //Testeo de rama
         Player player;
         BulletAppState fisica;
+        boolean isGameOver = false;
+        private Timer gameOverTimer;
     
     public static void main(String[] args) {
-        
-        
         Main app = new Main();
         app.start();
     }
 
     @Override
     public void simpleInitApp(){
+        gameOverTimer = getTimer();
         rootNode.attachChild(SkyFactory.createSky(getAssetManager(), "Textures/sky2.png", SkyFactory.EnvMapType.EquirectMap));
             
         //Agregacion de fisica
@@ -70,16 +71,15 @@ public class Main extends SimpleApplication {
             Box b = new Box(1, 1, 1);  // Crea un cubo de tamaño 1x1x1
             Geometry geom = new Geometry("Box" + i, b); // Cambia el nombre de la geometrí
             geom.setMaterial(mat);
-                CollisionShape colisionCaja = CollisionShapeFactory.createBoxShape(geom);
-                RigidBodyControl cuerpoRigidoCaja = new RigidBodyControl(colisionCaja, 1.0f);
-                geom.addControl(cuerpoRigidoCaja);  // Attach control to each box geometry
-                fisica.getPhysicsSpace().add(cuerpoRigidoCaja);
+            CollisionShape colisionCaja = CollisionShapeFactory.createBoxShape(geom);
+            RigidBodyControl cuerpoRigidoCaja = new RigidBodyControl(colisionCaja, 1.0f);
+            geom.addControl(cuerpoRigidoCaja);  // Attach control to each box geometry
+            fisica.getPhysicsSpace().add(cuerpoRigidoCaja);
             // Posiciona el cubo en una posición aleatoria
             float x = rand.nextFloat() * 50 - 25;
             float y = rand.nextFloat() * 10;
             float z = rand.nextFloat() * 50 - 25;
             geom.setLocalTranslation(new Vector3f(x, y, z));
-
             cajasNode.attachChild(geom);
         }
         
@@ -132,18 +132,17 @@ public class Main extends SimpleApplication {
         // Inicializar al jugador
         initPlayer(fisica);
         setUpKeys();
-        
-        
     }
     
-        // Configurar las teclas para el movimiento del jugador
+    // Configurar las teclas para el movimiento del jugador
     private void setUpKeys() {
         inputManager.addMapping("Left", new KeyTrigger(KeyInput.KEY_A));
         inputManager.addMapping("Right", new KeyTrigger(KeyInput.KEY_D));
         inputManager.addMapping("Forward", new KeyTrigger(KeyInput.KEY_W));
         inputManager.addMapping("Backward", new KeyTrigger(KeyInput.KEY_S));
         inputManager.addMapping("Jump", new KeyTrigger(KeyInput.KEY_SPACE));
-        inputManager.addListener(player, "Left", "Right", "Forward", "Backward", "Jump");
+        inputManager.addMapping("GameOver", new KeyTrigger(KeyInput.KEY_F));
+        inputManager.addListener(actionListener, "Left", "Right", "Forward", "Backward", "Jump", "GameOver");
     }
     
     private void initPlayer(BulletAppState fisica) {
@@ -160,25 +159,52 @@ public class Main extends SimpleApplication {
         cuerpoRigidoPersonaje.setGravity(new Vector3f(0, -9.81f, 0)); // Sets gravity to -9.81 on the Y-axis
         personaje.addControl(cuerpoRigidoPersonaje);
         fisica.getPhysicsSpace().add(cuerpoRigidoPersonaje);
-        
-        
     }
     
-    
-        @Override
+    @Override
     public void simpleUpdate(float tpf) {
-        player.update(tpf);
-
-        // Actualizar la posición de la cámara para seguir al jugador
-        Vector3f playerPos = player.getNode().getWorldTranslation();
-        Vector3f camOffset = new Vector3f(0, 2, 5); // Offset de la cámara detrás y encima del jugador
-        cam.setLocation(playerPos.add(camOffset)); // Establecer la posición de la cámara
+        if (!isGameOver) {
+            player.update(tpf);
+            // Actualizar la posición de la cámara para seguir al jugador
+            Vector3f playerPos = player.getNode().getWorldTranslation();
+            Vector3f camOffset = new Vector3f(0, 2, 5); // Offset de la cámara detrás y encima del jugador
+            cam.setLocation(playerPos.add(camOffset)); // Establecer la posición de la cámara
+        } else {
+            // Incrementa el temporizador cuando se muestra la pantalla de Game Over
+            gameOverTimer.update();
+            if (gameOverTimer.getTimeInSeconds() >= 30.0f) {
+                // Cierra la aplicación después de 3 segundos
+                stop();
+            }
+        }
     }
     
-        @Override
+    @Override
     public void simpleRender(RenderManager rm) {
         // Código de renderización
     }
+
+    private void gameOver() {
+        isGameOver = true;  // Actualiza el estado del juego
+        
+        BitmapText gameOverText = new BitmapText(guiFont, false);
+        gameOverText.setSize(guiFont.getCharSet().getRenderedSize() * 4);
+        gameOverText.setColor(ColorRGBA.Red); // Color del texto
+        gameOverText.setText("¡Game Over!"); // Texto a mostrar
+        gameOverText.setLocalTranslation(settings.getWidth() / 2f - gameOverText.getLineWidth() / 2f, settings.getHeight() / 2f, 0); // Posición del texto en la pantalla
+        guiNode.attachChild(gameOverText);
+    }
+
+    private ActionListener actionListener = new ActionListener() {
+        @Override
+        public void onAction(String name, boolean isPressed, float tpf) {
+            if (name.equals("GameOver") && isPressed) {
+                gameOver();
+            } else {
+                player.onAction(name, isPressed, tpf);
+            }
+        }
+    };
     
     // Clase del jugador
     class Player implements ActionListener {
@@ -258,19 +284,5 @@ public class Main extends SimpleApplication {
                 walkDirection.normalizeLocal().multLocal(5); // Ajustar la velocidad de movimiento aquí
             }
         }
-    }
-    
-    private void gameOver() {
-        //Muestra el mensaje de Game Over
-        BitmapText gameOverText = new BitmapText(guiFont, false);
-        gameOverText.setSize(guiFont.getCharSet().getRenderedSize() * 4);
-        gameOverText.setColor(ColorRGBA.Red); //Color del texto
-        gameOverText.setText("¡Game Over!"); //Texto a mostrar
-        gameOverText.setLocalTranslation(settings.getWidth() / 2f - gameOverText.getLineWidth() / 2f, settings.getHeight() / 2f, 0); //Posicion del texto en la pantalla
-        guiNode.attachChild(gameOverText);
-        
-            //Iniciar el temporizador de pausa
-            float pauseTimer = 0f;
-            boolean isGameOver = true;
     }
 }
