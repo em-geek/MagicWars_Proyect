@@ -22,6 +22,7 @@ import com.jme3.bullet.BulletAppState;
 import com.jme3.bullet.collision.shapes.CollisionShape;
 import com.jme3.bullet.control.RigidBodyControl;
 import com.jme3.bullet.util.CollisionShapeFactory;
+import com.jme3.font.BitmapText;
 
 public class Main extends SimpleApplication {
     //Testeo de rama
@@ -257,5 +258,19 @@ public class Main extends SimpleApplication {
                 walkDirection.normalizeLocal().multLocal(5); // Ajustar la velocidad de movimiento aquí
             }
         }
+    }
+    
+    private void gameOver() {
+        //Muestra el mensaje de Game Over
+        BitmapText gameOverText = new BitmapText(guiFont, false);
+        gameOverText.setSize(guiFont.getCharSet().getRenderedSize() * 4);
+        gameOverText.setColor(ColorRGBA.Red); //Color del texto
+        gameOverText.setText("¡Game Over!"); //Texto a mostrar
+        gameOverText.setLocalTranslation(settings.getWidth() / 2f - gameOverText.getLineWidth() / 2f, settings.getHeight() / 2f, 0); //Posicion del texto en la pantalla
+        guiNode.attachChild(gameOverText);
+        
+            //Iniciar el temporizador de pausa
+            float pauseTimer = 0f;
+            boolean isGameOver = true;
     }
 }
