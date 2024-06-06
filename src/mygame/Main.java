@@ -1,6 +1,10 @@
 package mygame;
 
+import com.jme3.app.Application;
 import com.jme3.app.SimpleApplication;
+import com.jme3.app.state.AbstractAppState;
+import com.jme3.app.state.AppState;
+import com.jme3.app.state.AppStateManager;
 import com.jme3.input.KeyInput;
 import com.jme3.input.controls.ActionListener;
 import com.jme3.input.controls.KeyTrigger;
@@ -22,17 +26,26 @@ import com.jme3.bullet.BulletAppState;
 import com.jme3.bullet.collision.shapes.CollisionShape;
 import com.jme3.bullet.control.RigidBodyControl;
 import com.jme3.bullet.util.CollisionShapeFactory;
+import com.jme3.font.BitmapFont;
 import com.jme3.font.BitmapText;
+import com.jme3.input.InputManager;
+import com.jme3.system.AppSettings;
 import com.jme3.system.Timer;
 
 public class Main extends SimpleApplication {
-        Player player;
-        BulletAppState fisica;
-        boolean isGameOver = false;
-        private Timer gameOverTimer;
+    
+    Player player;
+    BulletAppState fisica;
+    boolean isGameOver = false;
+    private Timer gameOverTimer;
     
     public static void main(String[] args) {
         Main app = new Main();
+        AppSettings settings = new AppSettings(true);
+        settings.setTitle("Magics Wars");
+        settings.setSettingsDialogImage("Interface/Pantalla_Magics_Wars.jpg");
+        settings.setResolution(1280, 720); // Establece la resolución deseada
+        app.setSettings(settings);
         app.start();
     }
 
@@ -172,7 +185,7 @@ public class Main extends SimpleApplication {
         } else {
             // Incrementa el temporizador cuando se muestra la pantalla de Game Over
             gameOverTimer.update();
-            if (gameOverTimer.getTimeInSeconds() >= 30.0f) {
+            if (gameOverTimer.getTimeInSeconds() >= 20.0f) {
                 // Cierra la aplicación después de 3 segundos
                 stop();
             }
