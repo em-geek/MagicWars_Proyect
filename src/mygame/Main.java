@@ -3,6 +3,7 @@ package mygame;
 import com.jme3.app.SimpleApplication;
 import com.jme3.asset.AssetManager;
 import com.jme3.audio.AudioData;
+import com.jme3.audio.AudioData.DataType;
 import com.jme3.audio.AudioNode;
 import com.jme3.input.KeyInput;
 import com.jme3.input.controls.ActionListener;
@@ -65,6 +66,7 @@ public class Main extends SimpleApplication {
     //Audios
     private AudioNode fire;
     private AudioNode combustion;
+    private AudioNode music;
     
     
     public static void main(String[] args) {
@@ -86,7 +88,16 @@ public class Main extends SimpleApplication {
         fire.setVolume(0.5f);
         combustion = new AudioNode(assetManager, "Sounds/combustion.ogg", AudioData.DataType.Buffer);
         combustion.setVolume(0.5f);
-
+        // Cargar la música desde el archivo
+        music = new AudioNode(assetManager, "Sounds/medieval-drama-196654.ogg", DataType.Stream);
+        // Configurar la música para que no sea posicional
+        music.setPositional(false);
+        // Configurar la música para que se reproduzca en bucle
+        music.setLooping(true);
+        // Bajar el volumen si es necesario (valores entre 0 y 1)
+        music.setVolume(0.2f);
+        // Reproducir la música
+        music.play();
         
         gameOverTimer = getTimer();
         rootNode.attachChild(SkyFactory.createSky(getAssetManager(), "Textures/sky2.png", SkyFactory.EnvMapType.EquirectMap));
@@ -219,7 +230,7 @@ public class Main extends SimpleApplication {
                 z = 200; // Orilla norte
                 break;
             case 1: // Sur (z mínimo)
-                x = random.nextFloat() * 1000 - 100; // Aleatorio en el rango del ancho de la plataforma
+                x = random.nextFloat() * -1000 + 100; // Aleatorio en el rango del ancho de la plataforma
                 z = 200; // Orilla sur
                 break;
             case 2: // Este (x máximo)
@@ -228,7 +239,7 @@ public class Main extends SimpleApplication {
                 break;
             case 3: // Oeste (x mínimo)
                 x = 200; // Orilla oeste
-                z = random.nextFloat() * 1000 - 100; // Aleatorio en el rango de la longitud de la plataforma
+                z = random.nextFloat() * -1000 + 100; // Aleatorio en el rango de la longitud de la plataforma
                 break;
             default:
                 x = 0;
@@ -324,7 +335,7 @@ public class Main extends SimpleApplication {
             } else {
                 Vector3f enemyLocation = e.model.getLocalTranslation();
                 Vector3f playerDirection = playerLocation.subtract(enemyLocation);
-                e.model.move(playerDirection.mult(tpf).mult(.25f));
+                e.model.move(playerDirection.mult(tpf).mult(.50f));
 
                 // Hacer que el enemigo mire siempre al jugador
                 e.model.lookAt(playerLocation, Vector3f.UNIT_Y);
