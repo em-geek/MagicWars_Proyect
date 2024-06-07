@@ -213,20 +213,20 @@ public class Main extends SimpleApplication {
 
         switch (edge) {
             case 0: // Norte (z máximo)
-                x = random.nextFloat() * 3000 - 100; // Aleatorio en el rango del ancho de la plataforma
+                x = random.nextFloat() * 1000 - 100; // Aleatorio en el rango del ancho de la plataforma
                 z = 200; // Orilla norte
                 break;
             case 1: // Sur (z mínimo)
-                x = random.nextFloat() * 3000 - 100; // Aleatorio en el rango del ancho de la plataforma
+                x = random.nextFloat() * 1000 - 100; // Aleatorio en el rango del ancho de la plataforma
                 z = 200; // Orilla sur
                 break;
             case 2: // Este (x máximo)
                 x = 200; // Orilla este
-                z = random.nextFloat() * 3000 - 100; // Aleatorio en el rango de la longitud de la plataforma
+                z = random.nextFloat() * 1000 - 100; // Aleatorio en el rango de la longitud de la plataforma
                 break;
             case 3: // Oeste (x mínimo)
                 x = 200; // Orilla oeste
-                z = random.nextFloat() * 3000 - 100; // Aleatorio en el rango de la longitud de la plataforma
+                z = random.nextFloat() * 1000 - 100; // Aleatorio en el rango de la longitud de la plataforma
                 break;
             default:
                 x = 0;
@@ -316,23 +316,26 @@ public class Main extends SimpleApplication {
             if (e.health <= 0) {
                 enemies.remove(e);
                 e.model.removeFromParent();
-            }
+            } else {
+                Vector3f enemyLocation = e.model.getLocalTranslation();
+                Vector3f playerDirection = playerLocation.subtract(enemyLocation);
+                e.model.move(playerDirection.mult(tpf).mult(.25f));
 
-            Vector3f enemyLocation = e.model.getLocalTranslation();
-            Vector3f playerDirection = playerLocation.subtract(enemyLocation);
-            e.model.move(playerDirection.mult(tpf).mult(.25f));
+                // Hacer que el enemigo mire siempre al jugador
+                e.model.lookAt(playerLocation, Vector3f.UNIT_Y);
 
-            // Si el enemigo está cerca, atacar al jugador
-            float distance = enemyLocation.distance(playerLocation);
-            if (distance < 5) {
-                e.attack();
-            }
+                // Si el enemigo está cerca, atacar al jugador
+                float distance = enemyLocation.distance(playerLocation);
+                if (distance < 5) {
+                    e.attack();
+                }
 
-            // Si e es amarillo o cian, hacer rojo
-            if (e.isYellow) {
-                e.endYellow();
-            } else if (e.isCyan) {
-                e.endCyan();
+                // Si e es amarillo o cian, hacer rojo
+                if (e.isYellow) {
+                    e.endYellow();
+                } else if (e.isCyan) {
+                    e.endCyan();
+                }
             }
         }
     }
@@ -346,10 +349,19 @@ public class Main extends SimpleApplication {
         boolean isYellow = false;
         boolean isCyan = false;
         int health = 100; // Health of the enemy
+        int hitCount = 0; // Number of times the enemy has been hit
+        CharacterControl characterControl;
 
         public Enemy(float x, float z) {
-             // Load the ghost model
+            // Load the ghost model
             model = (Node) assetManager.loadModel("Models/fantasma/fantasma.j3o");
+
+            // Rotate the model 90 degrees to the left (counterclockwise) around the Y-axis
+            model.rotate(0, (float) Math.toRadians(90), 0);
+
+            // Crear la forma de colisión para el jugador
+            CapsuleCollisionShape capsuleShape = new CapsuleCollisionShape(0.5f, 1.8f, 1);
+            characterControl = new CharacterControl(capsuleShape, 0.5f);
 
             // Set the position of the model
             model.setLocalTranslation(x, 1, z);
@@ -368,14 +380,28 @@ public class Main extends SimpleApplication {
         public void hit() {
             long now = System.currentTimeMillis();
             if (now - lastHit >= 1000) {
-                this.health -= 10;
+                this.hitCount += 1;
+                if (this.hitCount >= 3) {
+                    this.health = 0;
+                } else {
+                    this.health -= 10;
+                }
                 updateHealthColor();
                 lastHit = now;
+                if (health <= 0) {
+                    // Eliminar el nodo del enemigo del juego
+                    this.removeFromParent();
+                }
             }
         }
 
         public void updateHealthColor() {
-            Geometry geom = (Geometry) model.getChild("Enemy");
+            Geometry geom = (Geometry) model.getChild("model");
+            if (geom == null) {
+                // Manejar la situación donde el nodo Geometry no se encuentra
+                System.out.println("Nodo 'model' no encontrado en el modelo del enemigo");
+                return;
+            }
             Material mat = geom.getMaterial();
 
             if (health < 100 && health >= 60) {
@@ -394,7 +420,7 @@ public class Main extends SimpleApplication {
         public void endYellow() {
             long now = System.currentTimeMillis();
             if (now - lastHit >= 2000) {
-                Geometry geom = (Geometry) model.getChild("Enemy");
+                Geometry geom = (Geometry) model.getChild("model");
                 Material mat = geom.getMaterial();
                 mat.setColor("Color", ColorRGBA.Red);
                 isYellow = false;
@@ -404,14 +430,14 @@ public class Main extends SimpleApplication {
         public void endCyan() {
             long now = System.currentTimeMillis();
             if (now - lastHit >= 4000) {
-                Geometry geom = (Geometry) model.getChild("Enemy");
+                Geometry geom = (Geometry) model.getChild("model");
                 Material mat = geom.getMaterial();
                 mat.setColor("Color", ColorRGBA.Red);
                 isCyan = false;
             }
         }
     }
-
+    
     // Clase del jugador
     class Player extends Node implements ActionListener {
 
@@ -495,19 +521,19 @@ public class Main extends SimpleApplication {
 
             characterControl.setWalkDirection(walkDirection);
         }
-        
+
         public void shoot() {
             // Verificar el cooldown
             if (timeSinceLastShot < shootCooldown) {
                 return; // Todavía en cooldown, no se puede disparar
             }
-            
+
             // Verificar el límite de balas en pantalla
             if (projectilesOnScreen >= maxProjectiles) {
                 return; // Límite alcanzado, no se puede disparar más balas
             }
-            
-            
+
+
             // Crear un nodo para contener la geometría del proyectil y el emisor de partículas
             Node projectileNode = new Node("ProjectileNode");
 
@@ -538,7 +564,7 @@ public class Main extends SimpleApplication {
             Material fireMat = new Material(assetManager, "Common/MatDefs/Misc/Particle.j3md");
             //fireMat.setTexture("Texture", assetManager.loadTexture("Effects/Explosion/flame.png"));
             fireEffect.setMaterial(fireMat);
-            fireEffect.setImagesX(2); 
+            fireEffect.setImagesX(2);
             fireEffect.setImagesY(2); // 2x2 texture animation
             fireEffect.setEndColor(new ColorRGBA(1f, 0f, 0f, 1f));   // red
             fireEffect.setStartColor(new ColorRGBA(1f, 1f, 0f, 0.5f)); // yellow
@@ -561,20 +587,20 @@ public class Main extends SimpleApplication {
 
             // Reiniciar el tiempo desde el último disparo
             timeSinceLastShot = 0f;
-            
+
             //Añade un proyectil a la pantalla
             projectilesOnScreen = projectilesOnScreen + 1;
             fire.play();
-            
+
             // Agregar un controlador de actualización para ajustar continuamente la posición del emisor de partículas
-            projectileNode.addControl(new AbstractControl() {  
+            projectileNode.addControl(new AbstractControl() {
                 protected void controlUpdate(float tpf) {
                     combustion.play();
                     // Obtener la posición actual del proyectil
                     Vector3f projectilePos = projectileGeom.getWorldTranslation();
                     // Establecer la posición del emisor de partículas para que coincida con la posición del proyectil
                     fireEffect.setLocalTranslation(projectilePos);
-                    
+
                     // Calcular el tiempo transcurrido desde la creación de la bala
                     float currentTime = getTimer().getTimeInSeconds();
                     float elapsedTime = currentTime - startTime;
@@ -588,19 +614,22 @@ public class Main extends SimpleApplication {
                         projectileNode.removeControl(this);
                         projectilesOnScreen = projectilesOnScreen - 1;
                         combustion.stop();
+                    } else {
+                        // Verificar si el proyectil golpea al enemigo
+                        for (Spatial enemy : enemies) {
+                            if (projectileGeom.getWorldBound().intersects(enemy.getWorldBound())) {
+                                ((Enemy)enemy).hit(); // Golpear al enemigo
+                                break;
+                            }
+                        }
                     }
-                    
                 }
 
                 protected void controlRender(RenderManager rm, ViewPort vp) {
                     // No se utiliza para este propósito
                 }
             });
-            
-            
-            
         }
-
     }
 }
 
