@@ -348,15 +348,10 @@ public class Main extends SimpleApplication {
         int health = 100; // Health of the enemy
 
         public Enemy(float x, float z) {
-            Box b = new Box(1, 1, 1);
-            Geometry geom = new Geometry("Enemy", b);
-            Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
-            mat.setColor("Color", ColorRGBA.Red);
-            geom.setMaterial(mat);
+             // Load the ghost model
+            model = (Node) assetManager.loadModel("Models/fantasma/fantasma.j3o");
 
-            model = new Node("EnemyNode");
-            model.attachChild(geom);
-
+            // Set the position of the model
             model.setLocalTranslation(x, 1, z);
             this.attachChild(model);
         }
