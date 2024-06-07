@@ -60,6 +60,7 @@ public class Main extends SimpleApplication {
     //Bitmaps para disparos
     private BitmapText cooldownText;
     private BitmapText projectilesText;
+    private BitmapText healthText;
     
     //Audios
     private AudioNode fire;
@@ -78,20 +79,6 @@ public class Main extends SimpleApplication {
 
     @Override
     public void simpleInitApp(){
-        // Inicializar los textos de la interfaz de usuario
-        cooldownText = new BitmapText(guiFont, false);
-        cooldownText.setSize(guiFont.getCharSet().getRenderedSize());
-        cooldownText.setColor(ColorRGBA.White);
-        cooldownText.setText("Cooldown: " + shootCooldown); // Mostrar el tiempo de cooldown inicial
-        cooldownText.setLocalTranslation(10, settings.getHeight() - 10, 0);
-        guiNode.attachChild(cooldownText);
-
-        projectilesText = new BitmapText(guiFont, false);
-        projectilesText.setSize(guiFont.getCharSet().getRenderedSize());
-        projectilesText.setColor(ColorRGBA.White);
-        projectilesText.setText("Projectiles: " + projectilesOnScreen); // Mostrar el número inicial de balas
-        projectilesText.setLocalTranslation(10, settings.getHeight() - 30, 0);
-        guiNode.attachChild(projectilesText);
         
         //Inicializar sonidos
         AssetManager assetManager = this.assetManager;
@@ -169,6 +156,28 @@ public class Main extends SimpleApplication {
 
         // Inicializar enemigos
         initEnemies();
+        
+        // Inicializar los textos de la interfaz de usuario
+        cooldownText = new BitmapText(guiFont, false);
+        cooldownText.setSize(guiFont.getCharSet().getRenderedSize());
+        cooldownText.setColor(ColorRGBA.White);
+        cooldownText.setText("Cooldown: " + shootCooldown); // Mostrar el tiempo de cooldown inicial
+        cooldownText.setLocalTranslation(10, settings.getHeight() - 10, 0);
+        guiNode.attachChild(cooldownText);
+
+        projectilesText = new BitmapText(guiFont, false);
+        projectilesText.setSize(guiFont.getCharSet().getRenderedSize());
+        projectilesText.setColor(ColorRGBA.White);
+        projectilesText.setText("Projectiles: " + projectilesOnScreen); // Mostrar el número inicial de balas
+        projectilesText.setLocalTranslation(10, settings.getHeight() - 30, 0);
+        guiNode.attachChild(projectilesText);
+        
+        healthText = new BitmapText(guiFont, false);
+        healthText.setSize(guiFont.getCharSet().getRenderedSize());
+        healthText.setColor(ColorRGBA.White);
+        healthText.setText("Health: " + player.health); // Mostrar la vida inicial del jugador
+        healthText.setLocalTranslation(10, settings.getHeight() - 50, 0); // Posición del texto en la pantalla
+        guiNode.attachChild(healthText);
     }
 
     // Configurar las teclas para el movimiento del jugador
@@ -248,6 +257,9 @@ public class Main extends SimpleApplication {
 
         // Actualizar el número de balas en pantalla
         projectilesText.setText("Projectiles: " + (3 - projectilesOnScreen));
+        
+        healthText.setText("Health: " + player.health);
+        
         
         if (!isGameOver) {
             player.update(tpf);
@@ -513,6 +525,12 @@ public class Main extends SimpleApplication {
             }
 
             characterControl.setWalkDirection(walkDirection);
+            
+            // Verificar si la vida ha llegado a cero
+            if (health <= 0) {
+                // Llamar al método gameOver() si la vida es cero
+                gameOver();
+            }
         }
 
         public void shoot() {
@@ -625,5 +643,3 @@ public class Main extends SimpleApplication {
         }
     }
 }
-
-
