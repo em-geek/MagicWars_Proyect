@@ -109,7 +109,7 @@ public class Main extends SimpleApplication {
 
         // Configurar la cámara
         cam.setLocation(new Vector3f(0, 1.8f, 0)); // Altura de los ojos del jugador
-        cam.lookAtDirection(new Vector3f(0, 0, -1), Vector3f.UNIT_Y); // Orientar la cámara hacia adelante
+        cam.lookAtDirection(new Vector3f(0, 0, 0), Vector3f.UNIT_Y); // Orientar la cámara hacia adelante
 
         // Añadir iluminación
         DirectionalLight sun = new DirectionalLight();
@@ -272,17 +272,25 @@ public class Main extends SimpleApplication {
         healthText.setText("Health: " + player.health);
         
         
+        // Variable para comprobar si el temporizador de game over ha sido iniciado
+        boolean gameOverTimerStarted = false;
+
         if (!isGameOver) {
             player.update(tpf);
             // Actualizar la posición de la cámara para seguir al jugador
             Vector3f playerPos = player.getNode().getWorldTranslation();
             Vector3f camOffset = new Vector3f(0, 2, 5); // Offset de la cámara detrás y encima del jugador
             cam.setLocation(player.getNode().getWorldTranslation().add(0, 1.8f, 0)); // Altura de los ojos del jugador
+            gameOverTimerStarted = false; // Reiniciar el indicador cuando no es game over
         } else {
+            if (!gameOverTimerStarted) {
+                gameOverTimer.reset(); // Reiniciar el temporizador al comienzo del game over
+                gameOverTimerStarted = true; // Marcar que el temporizador ha comenzado
+            }
             // Incrementa el temporizador cuando se muestra la pantalla de Game Over
             gameOverTimer.update();
-            if (gameOverTimer.getTimeInSeconds() >= 30.0f) {
-                // Cierra la aplicación después de 3 segundos
+            if (gameOverTimer.getTimeInSeconds() >= 5.0f) {
+                // Cierra la aplicación después de 5 segundos
                 stop();
             }
         }
@@ -503,6 +511,9 @@ public class Main extends SimpleApplication {
         }
 
         public void onAction(String binding, boolean isPressed, float tpf) {
+            if (isGameOver) {
+                return; // Ignora las acciones si el juego ha terminado
+            }
             if (binding.equals("Left")) {
                 left = isPressed;
             } else if (binding.equals("Right")) {
@@ -545,6 +556,9 @@ public class Main extends SimpleApplication {
         }
 
         public void shoot() {
+            if (isGameOver) {
+                return; // Ignora el disparo si el juego ha terminado
+            }
             // Verificar el cooldown
             if (timeSinceLastShot < shootCooldown) {
                 return; // Todavía en cooldown, no se puede disparar
