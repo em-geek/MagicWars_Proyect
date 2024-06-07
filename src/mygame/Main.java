@@ -1,17 +1,15 @@
 package mygame;
 
-import com.jme3.app.Application;
 import com.jme3.app.SimpleApplication;
-import com.jme3.app.state.AbstractAppState;
-import com.jme3.app.state.AppState;
-import com.jme3.app.state.AppStateManager;
+import com.jme3.asset.AssetManager;
+import com.jme3.audio.AudioData;
+import com.jme3.audio.AudioNode;
 import com.jme3.input.KeyInput;
 import com.jme3.input.controls.ActionListener;
 import com.jme3.input.controls.KeyTrigger;
 import com.jme3.light.DirectionalLight;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
-import com.jme3.math.FastMath;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.RenderManager;
 import com.jme3.scene.Geometry;
@@ -28,9 +26,14 @@ import com.jme3.bullet.collision.shapes.CapsuleCollisionShape;
 import com.jme3.bullet.control.CharacterControl;
 import com.jme3.bullet.control.RigidBodyControl;
 import com.jme3.bullet.util.CollisionShapeFactory;
-import com.jme3.font.BitmapFont;
+import com.jme3.effect.ParticleEmitter;
+import com.jme3.effect.ParticleMesh;
 import com.jme3.font.BitmapText;
-import com.jme3.input.InputManager;
+import com.jme3.input.MouseInput;
+import com.jme3.input.controls.MouseButtonTrigger;
+import com.jme3.renderer.ViewPort;
+import com.jme3.scene.control.AbstractControl;
+import com.jme3.scene.shape.Sphere;
 import com.jme3.system.AppSettings;
 import com.jme3.system.Timer;
 
@@ -42,6 +45,26 @@ public class Main extends SimpleApplication {
     int maxEnemies = 5; // Máximo número de enemigos en el juego
     boolean isGameOver = false;
     private Timer gameOverTimer;
+    
+    //Vida de las balas
+    private float projectileLifetime = 3.0f;
+    
+    // Variables para el cooldown entre disparos
+    private float shootCooldown = 0.5f; // Tiempo de enfriamiento entre disparos en segundos
+    private float timeSinceLastShot = 0f; // Tiempo transcurrido desde el último disparo
+
+    // Variables para el límite de balas en pantalla
+    private int maxProjectiles = 3; // Máximo número de balas en pantalla
+    private int projectilesOnScreen = 0; // Número actual de balas en pantalla
+    
+    //Bitmaps para disparos
+    private BitmapText cooldownText;
+    private BitmapText projectilesText;
+    
+    //Audios
+    private AudioNode fire;
+    private AudioNode combustion;
+    
     
     public static void main(String[] args) {
         Main app = new Main();
@@ -55,6 +78,29 @@ public class Main extends SimpleApplication {
 
     @Override
     public void simpleInitApp(){
+        // Inicializar los textos de la interfaz de usuario
+        cooldownText = new BitmapText(guiFont, false);
+        cooldownText.setSize(guiFont.getCharSet().getRenderedSize());
+        cooldownText.setColor(ColorRGBA.White);
+        cooldownText.setText("Cooldown: " + shootCooldown); // Mostrar el tiempo de cooldown inicial
+        cooldownText.setLocalTranslation(10, settings.getHeight() - 10, 0);
+        guiNode.attachChild(cooldownText);
+
+        projectilesText = new BitmapText(guiFont, false);
+        projectilesText.setSize(guiFont.getCharSet().getRenderedSize());
+        projectilesText.setColor(ColorRGBA.White);
+        projectilesText.setText("Projectiles: " + projectilesOnScreen); // Mostrar el número inicial de balas
+        projectilesText.setLocalTranslation(10, settings.getHeight() - 30, 0);
+        guiNode.attachChild(projectilesText);
+        
+        //Inicializar sonidos
+        AssetManager assetManager = this.assetManager;
+        fire = new AudioNode(assetManager, "Sounds/fire.ogg", AudioData.DataType.Buffer);
+        fire.setVolume(0.5f);
+        combustion = new AudioNode(assetManager, "Sounds/combustion.ogg", AudioData.DataType.Buffer);
+        combustion.setVolume(0.5f);
+
+        
         gameOverTimer = getTimer();
         rootNode.attachChild(SkyFactory.createSky(getAssetManager(), "Textures/sky2.png", SkyFactory.EnvMapType.EquirectMap));
 
@@ -140,9 +186,11 @@ public class Main extends SimpleApplication {
         inputManager.addMapping("Backward", new KeyTrigger(KeyInput.KEY_S));
         inputManager.addMapping("Jump", new KeyTrigger(KeyInput.KEY_SPACE));
         inputManager.addMapping("GameOver", new KeyTrigger(KeyInput.KEY_F));
-        inputManager.addListener(actionListener, "Left", "Right", "Forward", "Backward", "Jump", "GameOver");
+        inputManager.addMapping("Shoot", new MouseButtonTrigger(MouseInput.BUTTON_LEFT));
+        inputManager.addListener(actionListener, "Left", "Right", "Forward", "Backward", "Jump", "GameOver", "Shoot");
     }
 
+    
     private void initPlayer(BulletAppState fisica) {
         player = new Player();
         rootNode.attachChild(player.getNode());
@@ -191,10 +239,23 @@ public class Main extends SimpleApplication {
         rootNode.attachChild(e);
     }
     
+    
     @Override
     public void simpleUpdate(float tpf) {
+        timeSinceLastShot += tpf;
         player.update(tpf);
         updateEnemies(tpf);
+        
+        // Actualizar el tiempo de cooldown restante
+        if (timeSinceLastShot < shootCooldown) {
+            cooldownText.setText("Cooldown: " + String.format("%.1f", shootCooldown - timeSinceLastShot));
+        } else {
+            cooldownText.setText("Cooldown: Ready");
+        }
+
+        // Actualizar el número de balas en pantalla
+        projectilesText.setText("Projectiles: " + (3 - projectilesOnScreen));
+        
         if (!isGameOver) {
             player.update(tpf);
             // Actualizar la posición de la cámara para seguir al jugador
@@ -232,6 +293,8 @@ public class Main extends SimpleApplication {
         public void onAction(String name, boolean isPressed, float tpf) {
             if (name.equals("GameOver") && isPressed) {
                 gameOver();
+            } else if (name.equals("Shoot") && isPressed) {
+                player.shoot(); // Llamar al método de disparo
             } else {
                 player.onAction(name, isPressed, tpf);
             }
@@ -418,8 +481,8 @@ public class Main extends SimpleApplication {
 
         public void update(float tpf) {
             // Calcular la dirección de movimiento basada en la dirección de la cámara
-            Vector3f camDir = cam.getDirection().clone().multLocal(0.1f);
-            Vector3f camLeft = cam.getLeft().clone().multLocal(0.1f);
+            Vector3f camDir = cam.getDirection().clone().multLocal(0.2f);
+            Vector3f camLeft = cam.getLeft().clone().multLocal(0.2f);
 
             walkDirection.set(0, 0, 0);
             if (left) {
@@ -437,5 +500,113 @@ public class Main extends SimpleApplication {
 
             characterControl.setWalkDirection(walkDirection);
         }
+        
+        public void shoot() {
+            // Verificar el cooldown
+            if (timeSinceLastShot < shootCooldown) {
+                return; // Todavía en cooldown, no se puede disparar
+            }
+            
+            // Verificar el límite de balas en pantalla
+            if (projectilesOnScreen >= maxProjectiles) {
+                return; // Límite alcanzado, no se puede disparar más balas
+            }
+            
+            
+            // Crear un nodo para contener la geometría del proyectil y el emisor de partículas
+            Node projectileNode = new Node("ProjectileNode");
+
+            // Crear una esfera como proyectil
+            Sphere sphere = new Sphere(16, 16, 0.2f);
+            Geometry projectileGeom = new Geometry("Projectile", sphere);
+            Material mat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+            mat.setColor("Color", ColorRGBA.Green); // Color del proyectil
+            projectileGeom.setMaterial(mat);
+
+            // Posicionar el proyectil en la posición del jugador
+            projectileGeom.setLocalTranslation(playerNode.getWorldTranslation().add(0, 1.8f, 0));
+
+            // Añadir un control de cuerpo rígido al proyectil
+            RigidBodyControl projectileControl = new RigidBodyControl(1f);
+            projectileGeom.addControl(projectileControl);
+            fisica.getPhysicsSpace().add(projectileControl);
+
+            // Aplicar una fuerza para lanzar el proyectil
+            Vector3f direction = cam.getDirection().clone().mult(25); // Dirección y velocidad del disparo
+            projectileControl.setLinearVelocity(direction);
+
+            // Añadir la geometría del proyectil al nodo del proyectil
+            projectileNode.attachChild(projectileGeom);
+
+            // Crear y configurar el emisor de partículas
+            ParticleEmitter fireEffect = new ParticleEmitter("Emitter", ParticleMesh.Type.Triangle, 30);
+            Material fireMat = new Material(assetManager, "Common/MatDefs/Misc/Particle.j3md");
+            //fireMat.setTexture("Texture", assetManager.loadTexture("Effects/Explosion/flame.png"));
+            fireEffect.setMaterial(fireMat);
+            fireEffect.setImagesX(2); 
+            fireEffect.setImagesY(2); // 2x2 texture animation
+            fireEffect.setEndColor(new ColorRGBA(1f, 0f, 0f, 1f));   // red
+            fireEffect.setStartColor(new ColorRGBA(1f, 1f, 0f, 0.5f)); // yellow
+            fireEffect.getParticleInfluencer().setInitialVelocity(new Vector3f(0, 2, 0));
+            fireEffect.setStartSize(0.6f);
+            fireEffect.setEndSize(0.1f);
+            fireEffect.setGravity(0f, 0f, 0f);
+            fireEffect.setLowLife(0.5f);
+            fireEffect.setHighLife(3f);
+            fireEffect.getParticleInfluencer().setVelocityVariation(0.3f);
+
+            // Añadir el emisor de partículas al nodo del proyectil
+            projectileNode.attachChild(fireEffect);
+
+            // Añadir el nodo del proyectil al nodo raíz
+            rootNode.attachChild(projectileNode);
+
+            // Mantener una referencia a la hora de creación de la bala
+            final float startTime = getTimer().getTimeInSeconds(); // <-- Se declara aquí
+
+            // Reiniciar el tiempo desde el último disparo
+            timeSinceLastShot = 0f;
+            
+            //Añade un proyectil a la pantalla
+            projectilesOnScreen = projectilesOnScreen + 1;
+            fire.play();
+            
+            // Agregar un controlador de actualización para ajustar continuamente la posición del emisor de partículas
+            projectileNode.addControl(new AbstractControl() {  
+                protected void controlUpdate(float tpf) {
+                    combustion.play();
+                    // Obtener la posición actual del proyectil
+                    Vector3f projectilePos = projectileGeom.getWorldTranslation();
+                    // Establecer la posición del emisor de partículas para que coincida con la posición del proyectil
+                    fireEffect.setLocalTranslation(projectilePos);
+                    
+                    // Calcular el tiempo transcurrido desde la creación de la bala
+                    float currentTime = getTimer().getTimeInSeconds();
+                    float elapsedTime = currentTime - startTime;
+
+                    // Verificar si la bala ha excedido su tiempo de vida
+                    if (elapsedTime >= projectileLifetime) {
+                        // Eliminar la bala del juego
+                        rootNode.detachChild(projectileNode);
+                        fisica.getPhysicsSpace().remove(projectileControl);
+                        // Deshabilitar este controlador de actualización
+                        projectileNode.removeControl(this);
+                        projectilesOnScreen = projectilesOnScreen - 1;
+                        combustion.stop();
+                    }
+                    
+                }
+
+                protected void controlRender(RenderManager rm, ViewPort vp) {
+                    // No se utiliza para este propósito
+                }
+            });
+            
+            
+            
+        }
+
     }
 }
+
+
