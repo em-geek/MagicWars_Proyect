@@ -42,7 +42,7 @@ public class Main extends SimpleApplication {
     Player player;
     BulletAppState fisica;
     ArrayList<Enemy> enemies;
-    int maxEnemies = 5; // Máximo número de enemigos en el juego
+    int maxEnemies = 10; // Máximo número de enemigos en el juego
     boolean isGameOver = false;
     private Timer gameOverTimer;
     
@@ -128,28 +128,21 @@ public class Main extends SimpleApplication {
         Node cajasNode = new Node("CajasNode");
         rootNode.attachChild(cajasNode);
 
-        // Genera y posiciona los cubos
-        Random rand = new Random();
-        for (int i = 0; i < 50; i++) {
-            Box b = new Box(1, 1, 1);  // Crea un cubo de tamaño 1x1x1
-            Geometry geom = new Geometry("Box" + i, b); // Cambia el nombre de la geometrí
-            geom.setMaterial(mat);
-            CollisionShape colisionCaja = CollisionShapeFactory.createBoxShape(geom);
-            RigidBodyControl cuerpoRigidoCaja = new RigidBodyControl(colisionCaja, 1.0f);
-            geom.addControl(cuerpoRigidoCaja);  // Attach control to each box geometry
-            fisica.getPhysicsSpace().add(cuerpoRigidoCaja);
-            // Posiciona el cubo en una posición aleatoria
-            float x = rand.nextFloat() * 50 - 25;
-            float y = rand.nextFloat() * 10;
-            float z = rand.nextFloat() * 50 - 25;
-            geom.setLocalTranslation(new Vector3f(x, y, z));
-            cajasNode.attachChild(geom);
-        }
-
         // Crear el material para el suelo
         Material groundMat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
         Texture groundTexture = assetManager.loadTexture("Textures/brick.png"); // Ajusta la textura según lo que necesites
         groundMat.setTexture("ColorMap", groundTexture);
+        
+        // Crear torre
+        Spatial torre;
+        torre = assetManager.loadModel("Models/kickelhahn_tower/kickelhahn_tower.j3o");
+        // Posicionar la torre en (0, 0, 0)
+        torre.setLocalTranslation(30, -10, 0);
+        // Adjuntar la torre a la raíz de la escena
+        rootNode.attachChild(torre);
+        // Escalar la torre (por ejemplo, para hacerla el doble de grande en todas las direcciones)
+        float scaleFactor = 2.0f; // Puedes ajustar este valor según tu necesidad
+        torre.setLocalScale(scaleFactor);
 
         // Crear el suelo como un Quad grande
         Box groundMesh = new Box(200, 0.5f, 200); // Tamaño del suelo (ajústalo según tu necesidad)
