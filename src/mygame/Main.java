@@ -29,11 +29,14 @@ import com.jme3.bullet.control.RigidBodyControl;
 import com.jme3.bullet.util.CollisionShapeFactory;
 import com.jme3.effect.ParticleEmitter;
 import com.jme3.effect.ParticleMesh;
+import com.jme3.font.BitmapFont;
 import com.jme3.font.BitmapText;
 import com.jme3.input.MouseInput;
 import com.jme3.input.controls.MouseButtonTrigger;
+import com.jme3.material.RenderState;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.control.AbstractControl;
+import com.jme3.scene.shape.Quad;
 import com.jme3.scene.shape.Sphere;
 import com.jme3.system.AppSettings;
 import com.jme3.system.Timer;
@@ -67,6 +70,9 @@ public class Main extends SimpleApplication {
     private AudioNode fire;
     private AudioNode combustion;
     private AudioNode music;
+    private AudioNode kill;
+    private AudioNode hit;
+    private AudioNode hurt;
     
     
     public static void main(String[] args) {
@@ -87,9 +93,15 @@ public class Main extends SimpleApplication {
         fire = new AudioNode(assetManager, "Sounds/fire.ogg", AudioData.DataType.Buffer);
         fire.setVolume(0.5f);
         combustion = new AudioNode(assetManager, "Sounds/combustion.ogg", AudioData.DataType.Buffer);
-        combustion.setVolume(0.5f);
+        combustion.setVolume(0.8f);
+        kill = new AudioNode(assetManager, "Sounds/kill.wav", AudioData.DataType.Buffer);
+        kill.setVolume(1f);
+        hit = new AudioNode(assetManager, "Sounds/hit.wav", AudioData.DataType.Buffer);
+        hit.setVolume(1f);
+        hurt = new AudioNode(assetManager, "Sounds/hurt.wav", AudioData.DataType.Buffer);
+        hurt.setVolume(1f);
         // Cargar la música desde el archivo
-        music = new AudioNode(assetManager, "Sounds/medieval-drama-196654.ogg", DataType.Stream);
+        music = new AudioNode(assetManager, "Sounds/medieval.ogg", DataType.Stream);
         // Configurar la música para que no sea posicional
         music.setPositional(false);
         // Configurar la música para que se reproduzca en bucle
@@ -105,7 +117,7 @@ public class Main extends SimpleApplication {
         // Agregacion de fisica
         fisica = new BulletAppState();
         stateManager.attach(fisica);
-        fisica.setDebugEnabled(true);
+        fisica.setDebugEnabled(false);
 
         // Configurar la cámara
         cam.setLocation(new Vector3f(0, 1.8f, 0)); // Altura de los ojos del jugador
@@ -169,26 +181,67 @@ public class Main extends SimpleApplication {
         initEnemies();
         
         // Inicializar los textos de la interfaz de usuario
+                
+        // Cargar la textura para el marco desde un archivo de imagen
+        Texture frameTexture = assetManager.loadTexture("Textures/marco.jpg");
+
+        // Crear un material para el marco y establecer la textura cargada
+        Material frameMaterial = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        frameMaterial.setTexture("ColorMap", frameTexture);
+
+        // Crear un Quad para representar el marco
+        float frameWidth = 300; // Ancho de la pantalla
+        float frameHeight = 200; // Altura del marco (ajusta según sea necesario)
+        Geometry frameGeometry = new Geometry("Frame", new Quad(frameWidth, frameHeight));
+
+        // Ajustar la posición del marco detrás de los textos
+        frameGeometry.setLocalTranslation(0, settings.getHeight() - frameHeight, 0);
+
+        // Establecer el material del marco en la geometría del Quad
+        frameGeometry.setMaterial(frameMaterial);
+
+        // Adjuntar el Quad al guiNode para que aparezca en la interfaz de usuario
+        guiNode.attachChild(frameGeometry);
+        
+        
         cooldownText = new BitmapText(guiFont, false);
         cooldownText.setSize(guiFont.getCharSet().getRenderedSize());
-        cooldownText.setColor(ColorRGBA.White);
+        cooldownText.setColor(ColorRGBA.Black);
         cooldownText.setText("Cooldown: " + shootCooldown); // Mostrar el tiempo de cooldown inicial
-        cooldownText.setLocalTranslation(10, settings.getHeight() - 10, 0);
+        cooldownText.setLocalTranslation(20, settings.getHeight() - 20, 0);
         guiNode.attachChild(cooldownText);
 
         projectilesText = new BitmapText(guiFont, false);
         projectilesText.setSize(guiFont.getCharSet().getRenderedSize());
-        projectilesText.setColor(ColorRGBA.White);
+        projectilesText.setColor(ColorRGBA.Black);
         projectilesText.setText("Projectiles: " + projectilesOnScreen); // Mostrar el número inicial de balas
-        projectilesText.setLocalTranslation(10, settings.getHeight() - 30, 0);
+        projectilesText.setLocalTranslation(20, settings.getHeight() - 50, 0);
         guiNode.attachChild(projectilesText);
         
         healthText = new BitmapText(guiFont, false);
         healthText.setSize(guiFont.getCharSet().getRenderedSize());
-        healthText.setColor(ColorRGBA.White);
+        healthText.setColor(ColorRGBA.Black);
         healthText.setText("Health: " + player.health); // Mostrar la vida inicial del jugador
-        healthText.setLocalTranslation(10, settings.getHeight() - 50, 0); // Posición del texto en la pantalla
+        healthText.setLocalTranslation(20, settings.getHeight() - 90, 0); // Posición del texto en la pantalla
         guiNode.attachChild(healthText);
+        
+        // Definir el tamaño deseado para la fuente
+        float fontSize = 30;
+
+        // Configurar el tamaño de la fuente para cada texto
+        cooldownText.setSize(fontSize);
+        projectilesText.setSize(fontSize);
+        healthText.setSize(fontSize);
+        
+        Material crosshairMat = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
+        crosshairMat.setTexture("ColorMap", assetManager.loadTexture("Textures/mirilla.png"));
+        
+        Geometry crosshair = new Geometry("Crosshair", new Quad(0.05f, 0.05f));
+        crosshair.setMaterial(crosshairMat);
+        
+        guiNode.attachChild(crosshair);
+
+        
     }
 
     // Configurar las teclas para el movimiento del jugador
@@ -328,13 +381,11 @@ public class Main extends SimpleApplication {
     private void updateEnemies(float tpf) {
         Vector3f playerLocation = player.getNode().getLocalTranslation();
 
-        // Si hay menos enemigos de los necesarios, crear nuevos
         if (enemies.size() < maxEnemies) {
             createEnemy();
         }
 
         for (int i = 0; i < enemies.size(); i++) {
-            // Mover los enemigos hacia el jugador
             Enemy e = enemies.get(i);
 
             if (e.health <= 0) {
@@ -345,122 +396,170 @@ public class Main extends SimpleApplication {
                 Vector3f playerDirection = playerLocation.subtract(enemyLocation);
                 e.model.move(playerDirection.mult(tpf).mult(.50f));
 
-                // Hacer que el enemigo mire siempre al jugador
                 e.model.lookAt(playerLocation, Vector3f.UNIT_Y);
 
-                // Si el enemigo está cerca, atacar al jugador
                 float distance = enemyLocation.distance(playerLocation);
                 if (distance < 5) {
                     e.attack();
                 }
 
-                // Si e es amarillo o cian, hacer rojo
                 if (e.isYellow) {
                     e.endYellow();
                 } else if (e.isCyan) {
                     e.endCyan();
                 }
+
+                // Actualizar la posición y la orientación del texto de la vida del enemigo
+                e.healthText.setLocalTranslation(e.model.getLocalTranslation().x, e.model.getLocalTranslation().y + 2.5f, e.model.getLocalTranslation().z);
+                e.healthText.lookAt(cam.getLocation(), Vector3f.UNIT_Y); // Apuntar el texto hacia la cámara
+                e.healthText.setText("Health: " + e.health);
             }
         }
     }
 
-    // Clase del enemigo
-    class Enemy extends Node {
 
-        long lastAttack = System.currentTimeMillis(); // Time of last attack
-        long lastHit = System.currentTimeMillis();
-        Node model;
-        boolean isYellow = false;
-        boolean isCyan = false;
-        int health = 100; // Health of the enemy
-        int hitCount = 0; // Number of times the enemy has been hit
-        CharacterControl characterControl;
+        // Clase del enemigo
+        class Enemy extends Node {
 
-        public Enemy(float x, float z) {
-            // Load the ghost model
-            model = (Node) assetManager.loadModel("Models/fantasma/fantasma.j3o");
+            long lastAttack = System.currentTimeMillis(); // Tiempo del último ataque
+            long lastHit = System.currentTimeMillis();
+            Node model;
+            boolean isYellow = false;
+            boolean isCyan = false;
+            int health = 100; // Salud del enemigo
+            int hitCount = 0; // Número de golpes recibidos
+            CharacterControl characterControl;
+            BitmapText healthText; // Texto de la salud del enemigo
+            AudioNode killSound = kill.clone();
+            AudioNode hitSound = hit.clone();
+            AudioNode hurtSound = hurt.clone();
 
-            // Rotate the model 90 degrees to the left (counterclockwise) around the Y-axis
-            model.rotate(0, (float) Math.toRadians(90), 0);
+            public Enemy(float x, float z) {
+                // Cargar modelo de fantasma
+                model = (Node) assetManager.loadModel("Models/fantasma/fantasma.j3o");
 
-            // Crear la forma de colisión para el jugador
-            CapsuleCollisionShape capsuleShape = new CapsuleCollisionShape(0.5f, 1.8f, 1);
-            characterControl = new CharacterControl(capsuleShape, 0.5f);
+                // Rotar el modelo 90 grados a la izquierda (en sentido antihorario) alrededor del eje Y
+                model.rotate(0, (float) Math.toRadians(90), 0);
 
-            // Set the position of the model
-            model.setLocalTranslation(x, 1, z);
-            this.attachChild(model);
-        }
+                // Crear la forma de colisión para el jugador
+                CapsuleCollisionShape capsuleShape = new CapsuleCollisionShape(0.5f, 1.8f, 1);
+                characterControl = new CharacterControl(capsuleShape, 0.5f);
 
-        public void attack() {
-            long now = System.currentTimeMillis();
-            if (now - lastAttack >= 1000) { // Check if 1 second has passed since last attack
-                player.health -= 10; // Reduce player health
-                player.updateHealthColor();
-                lastAttack = now;
+                // Establecer la posición del modelo
+                model.setLocalTranslation(x, 1, z);
+                this.attachChild(model);
+
+                // Inicializar el texto de la vida del enemigo
+                BitmapFont font = assetManager.loadFont("Interface/Fonts/Default.fnt");
+                healthText = new BitmapText(font, false);
+                healthText.setSize(font.getCharSet().getRenderedSize() / 2); // Tamaño del texto
+                healthText.setColor(ColorRGBA.White); // Color del texto
+                healthText.setText("Health: " + health); // Texto inicial
+                healthText.setLocalScale(0.1f); // Escala el texto para hacerlo más pequeño
+                // Posicionar el texto sobre el enemigo
+                healthText.setLocalTranslation(0, model.getLocalScale().y + 5.5f, 0); // Ajusta la posición Y según sea necesario
+                this.attachChild(healthText); // Adjuntar el texto al enemigo 
+                
+                // Añadir los sonidos al nodo del proyectil
+                killSound.setPositional(true);
+                killSound.setLocalTranslation(this.getLocalTranslation());
+                this.attachChild(killSound);
+
+                hitSound.setPositional(true);
+                hitSound.setLocalTranslation(this.getLocalTranslation());
+                this.attachChild(hitSound);
+                
+                hurtSound.setPositional(true);
+                hurtSound.setLocalTranslation(this.getLocalTranslation());
+                this.attachChild(hurtSound);
+                
             }
-        }
 
-        public void hit() {
-            long now = System.currentTimeMillis();
-            if (now - lastHit >= 1000) {
-                this.hitCount += 1;
-                if (this.hitCount >= 3) {
-                    this.health = 0;
-                } else {
-                    this.health -= 10;
+            public void attack() {
+                long now = System.currentTimeMillis();
+                if (now - lastAttack >= 1000) { // Comprobar si ha pasado 1 segundo desde el último ataque
+                    player.health -= 10; // Reducir la salud del jugador
+                    player.updateHealthColor();
+                    lastAttack = now;
+                    hurtSound.setPositional(true);
+                    hurtSound.setLocalTranslation(this.getLocalTranslation());
+                    this.attachChild(hurtSound);
+                    hurtSound.playInstance();
                 }
-                updateHealthColor();
-                lastHit = now;
-                if (health <= 0) {
-                    // Eliminar el nodo del enemigo del juego
-                    this.removeFromParent();
+            }
+
+            public void hit() {
+                long now = System.currentTimeMillis();
+                if (now - lastHit >= 1000) {
+                    this.hitCount += 1;
+                    hitSound.setPositional(true);
+                    hitSound.setLocalTranslation(this.getLocalTranslation());
+                    this.attachChild(hitSound);
+                    hitSound.playInstance();
+                    if (this.hitCount >= 3) {
+                        this.health = 0;
+                    } else {
+                        this.health -= 40;
+                    }
+                    updateHealthColor();
+                    lastHit = now;
+                    if (health <= 0) {
+                        // Eliminar el nodo del enemigo del juego
+                        this.removeFromParent();
+                        killSound.setPositional(true);
+                        killSound.setLocalTranslation(this.getLocalTranslation());
+                        this.attachChild(killSound);
+                        killSound.playInstance();
+                    }
+                }
+            }
+
+            public void updateHealthColor() {
+                Geometry geom = (Geometry) model.getChild("model");
+                if (geom == null) {
+                    // Manejar la situación donde el nodo Geometry no se encuentra
+                    System.out.println("Nodo 'model' no encontrado en el modelo del enemigo");
+                    return;
+                }
+                Material mat = geom.getMaterial();
+
+                if (health < 100 && health >= 60) {
+                    mat.setColor("Color", ColorRGBA.Yellow);
+                    isYellow = true;
+                } else if (health < 60 && health >= 20) {
+                    mat.setColor("Color", ColorRGBA.Cyan);
+                    isYellow = false;
+                    isCyan = true;
+                } else if (health < 20) {
+                    mat.setColor("Color", ColorRGBA.Red);
+                    isCyan = false;
+                }
+
+                // Actualizar el texto de la vida
+                healthText.setText("Health: " + health);
+            }
+
+            public void endYellow() {
+                long now = System.currentTimeMillis();
+                if (now - lastHit >= 2000) {
+                    Geometry geom = (Geometry) model.getChild("model");
+                    Material mat = geom.getMaterial();
+                    mat.setColor("Color", ColorRGBA.Red);
+                    isYellow = false;
+                }
+            }
+
+            public void endCyan() {
+                long now = System.currentTimeMillis();
+                if (now - lastHit >= 4000) {
+                    Geometry geom = (Geometry) model.getChild("model");
+                    Material mat = geom.getMaterial();
+                    mat.setColor("Color", ColorRGBA.Red);
+                    isCyan = false;
                 }
             }
         }
 
-        public void updateHealthColor() {
-            Geometry geom = (Geometry) model.getChild("model");
-            if (geom == null) {
-                // Manejar la situación donde el nodo Geometry no se encuentra
-                System.out.println("Nodo 'model' no encontrado en el modelo del enemigo");
-                return;
-            }
-            Material mat = geom.getMaterial();
-
-            if (health < 100 && health >= 60) {
-                mat.setColor("Color", ColorRGBA.Yellow);
-                isYellow = true;
-            } else if (health < 60 && health >= 20) {
-                mat.setColor("Color", ColorRGBA.Cyan);
-                isYellow = false;
-                isCyan = true;
-            } else if (health < 20) {
-                mat.setColor("Color", ColorRGBA.Red);
-                isCyan = false;
-            }
-        }
-
-        public void endYellow() {
-            long now = System.currentTimeMillis();
-            if (now - lastHit >= 2000) {
-                Geometry geom = (Geometry) model.getChild("model");
-                Material mat = geom.getMaterial();
-                mat.setColor("Color", ColorRGBA.Red);
-                isYellow = false;
-            }
-        }
-
-        public void endCyan() {
-            long now = System.currentTimeMillis();
-            if (now - lastHit >= 4000) {
-                Geometry geom = (Geometry) model.getChild("model");
-                Material mat = geom.getMaterial();
-                mat.setColor("Color", ColorRGBA.Red);
-                isCyan = false;
-            }
-        }
-    }
     
     // Clase del jugador
     class Player extends Node implements ActionListener {
@@ -557,7 +656,7 @@ public class Main extends SimpleApplication {
 
         public void shoot() {
             if (isGameOver) {
-                return; // Ignora el disparo si el juego ha terminado
+                return; // Ignora el disparo si el juego ha terminadoau
             }
             // Verificar el cooldown
             if (timeSinceLastShot < shootCooldown) {
@@ -615,6 +714,22 @@ public class Main extends SimpleApplication {
             // Añadir el emisor de partículas al nodo del proyectil
             projectileNode.attachChild(fireEffect);
 
+            // Añadir los sonidos al nodo del proyectil
+            AudioNode fireSound = fire.clone();
+            fireSound.setPositional(true);
+            fireSound.setLocalTranslation(projectileGeom.getLocalTranslation());
+            projectileNode.attachChild(fireSound);
+
+            AudioNode combustionSound = combustion.clone();
+            combustionSound.setPositional(true);
+            combustionSound.setLocalTranslation(projectileGeom.getLocalTranslation());
+            projectileNode.attachChild(combustionSound);
+
+            // Reproducir los sonidos
+            fireSound.playInstance();
+            combustionSound.playInstance();
+            
+            
             // Añadir el nodo del proyectil al nodo raíz
             rootNode.attachChild(projectileNode);
 
@@ -631,7 +746,6 @@ public class Main extends SimpleApplication {
             // Agregar un controlador de actualización para ajustar continuamente la posición del emisor de partículas
             projectileNode.addControl(new AbstractControl() {
                 protected void controlUpdate(float tpf) {
-                    combustion.play();
                     // Obtener la posición actual del proyectil
                     Vector3f projectilePos = projectileGeom.getWorldTranslation();
                     // Establecer la posición del emisor de partículas para que coincida con la posición del proyectil
@@ -649,7 +763,7 @@ public class Main extends SimpleApplication {
                         // Deshabilitar este controlador de actualización
                         projectileNode.removeControl(this);
                         projectilesOnScreen = projectilesOnScreen - 1;
-                        combustion.stop();
+                        combustionSound.stop();
                     } else {
                         // Verificar si el proyectil golpea al enemigo
                         for (Spatial enemy : enemies) {
